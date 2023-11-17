@@ -1,9 +1,3 @@
-
-# Original code from the paper
-# Code for the paper "Fast Private Kernel Density Estimation via Locality Sensitive Quantization"
-# By T. Wagner, Y. Naamad, N. Mishra
-# Published in ICML 2023
-
 # The code below is for the Gaussian kernel with fixed bandwidth, k(x,y) := exp(-||x-y||_2^2).
 # The bandwidth can be changed by scaling the input point coordinates.
 
@@ -196,7 +190,7 @@ if __name__ == '__main__':
     print("DP estimate:", dp_kde_estimate)
     print("Mean error:", np.mean(np.abs(exact_kde - dp_kde_estimate)))
 
-
+    ### Reimplemented Functions ###
     ### Improvement 1: Optimized Squared-Distance Matrix Calculation
     def optimized_get_sqdistance_matrix(M1, M2):
         M1_norm = np.sum(M1 ** 2, axis=1).reshape(-1, 1)
@@ -237,15 +231,26 @@ if __name__ == '__main__':
         # Return the best bandwidth and the list of errors for each bandwidth tested
         return best_bandwidth, bandwidth_errors
 
+    ### Experimentation with subtraction value ###
+    def experiment_with_subtraction(dataset, queries, subtraction_values):
+        results = []
+        for value in subtraction_values:
+            optimized_kde = adjusted_gaussian_kde(dataset, queries, bandwidth=1.5)  # Example bandwidth adjustment
+            adjusted_kde = optimized_kde - value
+            mean_error = np.mean(np.abs(exact_kde - adjusted_kde))
+            results.append((value, mean_error))
+        return results
+    
+    ### Plotting and Testing ###
+    #Bandwidth
     # Define a range of bandwidth values to try
-    bandwidth_values = np.linspace(0.1, 2.0, 20)  # Example range from 0.1 to 2.0
+    bandwidth_values = np.linspace(0.1, 2.0, 20) 
 
     # Assuming 'dataset', 'queries', and 'exact_kde' are defined earlier in your script
     best_bandwidth, bandwidth_errors = test_bandwidth_range(dataset, queries, exact_kde, bandwidth_values)
 
     # Output the best bandwidth and corresponding error
     print(f"Best Bandwidth: {best_bandwidth}")
-    print(f"Mean Error for Best Bandwidth: {min(bandwidth_errors, key=lambda x: x[1])[1]}")
 
     # Adding the bandwidth testing results to the visualization
     plt.figure(figsize=(10, 6))
@@ -257,19 +262,8 @@ if __name__ == '__main__':
     plt.legend()
     plt.show()
 
-# Optionally, plot the errors for each bandwidth value if needed
-# This requires matplotlib to be imported and used here
 
-    ### Experimentation with subtraction value ###
-    def experiment_with_subtraction(dataset, queries, subtraction_values):
-        results = []
-        for value in subtraction_values:
-            optimized_kde = adjusted_gaussian_kde(dataset, queries, bandwidth=1.5)  # Example bandwidth adjustment
-            adjusted_kde = optimized_kde - value
-            mean_error = np.mean(np.abs(exact_kde - adjusted_kde))
-            results.append((value, mean_error))
-        return results
-
+    #Subtraction Experiment
     # Define a range of values to try for subtraction
     subtraction_values = np.linspace(-0.1, 1, 20)   # Example range from 0 to 1
 
