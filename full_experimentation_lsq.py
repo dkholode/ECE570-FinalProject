@@ -9,6 +9,7 @@
 
 import numpy as np
 import scipy as sp
+import matplotlib.pyplot as plt
 
 
 ### Auxiliary : computing squared-distance matrix ###
@@ -196,11 +197,7 @@ if __name__ == '__main__':
     print("Mean error:", np.mean(np.abs(exact_kde - dp_kde_estimate)))
 
 
-    # Importing necessary libraries
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    ### Improvement 1: Optimized Squared-Distance Matrix Calculation ###
+    ### Improvement 1: Optimized Squared-Distance Matrix Calculation
     def optimized_get_sqdistance_matrix(M1, M2):
         M1_norm = np.sum(M1 ** 2, axis=1).reshape(-1, 1)
         M2_norm = np.sum(M2 ** 2, axis=1).reshape(1, -1)
@@ -208,16 +205,60 @@ if __name__ == '__main__':
         dm[dm < 0] = 0  # Correcting for any negative values due to floating point errors
         return dm
 
-    ### Improvement 2: Enhanced Random Fourier Features Sampling ###
+    ### Improvement 2: Enhanced Random Fourier Features Sampling
     def enhanced_rff_sampling(dimension, reps):
         rff = np.sqrt(2) * np.random.normal(0, 1, (dimension, reps))
         rff_shift = np.random.uniform(0, 2*np.pi, reps).reshape(1, -1)
         return rff, rff_shift
 
-    ### Improvement 3: Adjusted Bandwidth for Gaussian KDE ###
+    ### Improvement 3: Adjusted Bandwidth for Gaussian KDE
     def adjusted_gaussian_kde(dataset, queries, bandwidth=1.0):
         exp_sq_dist_matrix = np.exp(-1 * optimized_get_sqdistance_matrix(dataset, queries) / bandwidth)
         return np.mean(exp_sq_dist_matrix, axis=0).T
+
+    def test_bandwidth_range(dataset, queries, exact_kde, bandwidth_values):
+        best_bandwidth = None
+        lowest_error = float('inf')
+        bandwidth_errors = []
+
+        for bandwidth in bandwidth_values:
+            # Use the adjusted Gaussian KDE function with the current bandwidth
+            estimated_kde = adjusted_gaussian_kde(dataset, queries, bandwidth)
+            
+            # Calculate the mean error for the estimated KDE against the exact KDE
+            mean_error = np.mean(np.abs(exact_kde - estimated_kde))
+            
+            # Record the error and check if this is the lowest error so far
+            bandwidth_errors.append((bandwidth, mean_error))
+            if mean_error < lowest_error:
+                lowest_error = mean_error
+                best_bandwidth = bandwidth
+
+        # Return the best bandwidth and the list of errors for each bandwidth tested
+        return best_bandwidth, bandwidth_errors
+
+    # Define a range of bandwidth values to try
+    bandwidth_values = np.linspace(0.1, 2.0, 20)  # Example range from 0.1 to 2.0
+
+    # Assuming 'dataset', 'queries', and 'exact_kde' are defined earlier in your script
+    best_bandwidth, bandwidth_errors = test_bandwidth_range(dataset, queries, exact_kde, bandwidth_values)
+
+    # Output the best bandwidth and corresponding error
+    print(f"Best Bandwidth: {best_bandwidth}")
+    print(f"Mean Error for Best Bandwidth: {min(bandwidth_errors, key=lambda x: x[1])[1]}")
+
+    # Adding the bandwidth testing results to the visualization
+    plt.figure(figsize=(10, 6))
+    plt.plot([bw for bw, err in bandwidth_errors], [err for bw, err in bandwidth_errors], marker='o', label='Bandwidth Test')
+    plt.axvline(x=best_bandwidth, color='r', linestyle='--', label=f'Best Bandwidth = {best_bandwidth:.2f}')
+    plt.xlabel('Bandwidth')
+    plt.ylabel('Mean Error')
+    plt.title('Bandwidth Testing for KDE')
+    plt.legend()
+    plt.show()
+
+# Optionally, plot the errors for each bandwidth value if needed
+# This requires matplotlib to be imported and used here
 
     ### Experimentation with subtraction value ###
     def experiment_with_subtraction(dataset, queries, subtraction_values):
@@ -229,11 +270,8 @@ if __name__ == '__main__':
             results.append((value, mean_error))
         return results
 
-
-    # Original code setup for dataset, queries, etc.
-
     # Define a range of values to try for subtraction
-    subtraction_values = np.linspace(-0.1, 0.1, 21)  # Trying values from -0.1 to 0.1
+    subtraction_values = np.linspace(-0.1, 1, 20)   # Example range from 0 to 1
 
     # Run the experimentation
     experiment_results = experiment_with_subtraction(dataset, queries, subtraction_values)
